@@ -21,6 +21,9 @@ twilio
 # Password hashing
 passlib[bcrypt]
 
+# Email validation
+email-validator
+
 # Production server
 gunicorn==21.2.0
 
