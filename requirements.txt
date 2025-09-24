@@ -19,3 +19,4 @@ python-dotenv
 
 # HTTP client (if you import requests)
 requests
+flask_login 
