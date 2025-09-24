@@ -1,2 +1,23 @@
-pip install -r requirements.txt
+# Core framework
+Flask==3.0.0
+Flask-Cors
+Flask-Login
+Flask-SQLAlchemy
+
+# ORM / database
+SQLAlchemy
+psycopg2-binary   # needed if you use Postgres on Render
+
+# HTTP client
+requests
+
+# Env file support
+python-dotenv
+
+# SMS / notifications
+twilio
+
+# Production server
+gunicorn==21.2.0
+
 
