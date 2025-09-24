@@ -4,15 +4,23 @@ Flask-Cors
 Flask-Login
 Flask-SQLAlchemy
 Flask-WTF
+
 # ORM / database
 SQLAlchemy
-psycopg2-binary   # needed if you use Postgres on Render
+psycopg2-binary
+
 # HTTP client
 requests
+
 # Env file support
 python-dotenv
+
 # SMS / notifications
 twilio
+
+# Password hashing
+passlib[bcrypt]
+
 # Production server
 gunicorn==21.2.0
 
