@@ -1,22 +1,22 @@
+# Core web framework
 Flask==3.0.0
-gunicorn==21.2.0
-
-# CORS (if you import/need it)
-flask-cors
-
-# Database (only if you use SQLAlchemy)
+Flask-Cors
+Flask-Login
 Flask-SQLAlchemy
+
+# ORM / database
 SQLAlchemy
+psycopg2-binary   # only needed if you connect to PostgreSQL on Render
 
-# Postgres driver (ONLY if you actually connect to Postgres on Render)
-psycopg2-binary
+# HTTP client
+requests
 
-# Twilio SMS (ONLY if your code imports twilio)
-twilio
+# SMS / Email
+twilio            # SMS (Twilio API)
+# If you’re sending email via SMTP, Python already has smtplib built-in (no need to install)
 
-# .env support (ONLY if you call load_dotenv / use .env)
+# Environment variables support
 python-dotenv
 
-# HTTP client (if you import requests)
-requests
-flask_login 
+# Production server
+gunicorn==21.2.0
