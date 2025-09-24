@@ -17,6 +17,7 @@ python-dotenv
 
 # SMS / notifications
 twilio
+sendgrid
 
 # Password hashing
 passlib[bcrypt]
@@ -26,5 +27,3 @@ email-validator
 
 # Production server
 gunicorn==21.2.0
-
-
