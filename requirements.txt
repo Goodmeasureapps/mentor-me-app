@@ -8,7 +8,6 @@ SQLAlchemy
 psycopg2-binary     # only if connecting to PostgreSQL
 
 # Email & SMS
-smtplib3            # OR flask-mail if you’re using Flask’s email extension
 twilio              # for SMS sending
 
 # General utilities
