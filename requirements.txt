@@ -1,1 +1,2 @@
-Clean requirements.txt with all needed dependencies
+pip freeze > requirements.txt
+
