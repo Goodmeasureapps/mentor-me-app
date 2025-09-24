@@ -1,15 +1,21 @@
-Flask
-Flask-Cors
-Flask-Login
-gunicorn
+Flask==3.0.0
+gunicorn==21.2.0
 
-# Database / ORM (if used)
+# CORS (if you import/need it)
+flask-cors
+
+# Database (only if you use SQLAlchemy)
+Flask-SQLAlchemy
 SQLAlchemy
-psycopg2-binary     # only if connecting to PostgreSQL
 
-# Email & SMS
-twilio              # for SMS sending
+# Postgres driver (ONLY if you actually connect to Postgres on Render)
+psycopg2-binary
 
-# General utilities
+# Twilio SMS (ONLY if your code imports twilio)
+twilio
+
+# .env support (ONLY if you call load_dotenv / use .env)
+python-dotenv
+
+# HTTP client (if you import requests)
 requests
-python-dotenv       # load env vars from .env
