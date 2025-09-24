@@ -1,5 +1,16 @@
-Flask==3.0.0
-gunicorn==21.2.0
-requests
-flask-cors
+Flask
+Flask-Cors
 Flask-Login
+gunicorn
+
+# Database / ORM (if used)
+SQLAlchemy
+psycopg2-binary     # only if connecting to PostgreSQL
+
+# Email & SMS
+smtplib3            # OR flask-mail if you’re using Flask’s email extension
+twilio              # for SMS sending
+
+# General utilities
+requests
+python-dotenv       # load env vars from .env
