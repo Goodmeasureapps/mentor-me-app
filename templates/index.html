@@ -26,7 +26,7 @@
       {% if topics and topics|length > 0 %}
       <div class="mm-topics">
         {% for t in topics %}
-          <a class="chip" href="{{ url_for('topic_detail', topic_id=t.id) if 'topic_detail' in current_app.view_functions else '#' }}">
+          <a class="chip" href="{{ url_for('topic_detail', topic_id=t.id) if has_endpoint('topic_detail') else '#' }}">
             {{ t.title }}
           </a>
         {% endfor %}
@@ -37,8 +37,8 @@
     <section class="mm-cta card">
       <h2>Start Your Member Journey</h2>
       <div class="mm-buttons">
-        <a class="btn btn-primary" href="{{ url_for('register') if 'register' in current_app.view_functions else '/register' }}">Sign Up</a>
-        <a class="btn btn-secondary" href="{{ url_for('login') if 'login' in current_app.view_functions else '/login' }}">Log In</a>
+        <a class="btn btn-primary" href="{{ url_for('register') if has_endpoint('register') else '/register' }}">Sign Up</a>
+        <a class="btn btn-secondary" href="{{ url_for('login') if has_endpoint('login') else '/login' }}">Log In</a>
       </div>
     </section>
   </main>
