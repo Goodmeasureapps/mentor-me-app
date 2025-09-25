@@ -1,32 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MentorMe App</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MentorMe – Welcome</title>
+
+  <!-- Bust CSS cache whenever AppConfig says so -->
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='styles.css') }}?v={{ cache_buster }}">
 </head>
-<body>
-  <header>
-    <h1>📱 MentorMe</h1>
-    <p>Learn. Grow. Budget. Build your future.</p>
+<body class="mm-body">
+  <header class="mm-header">
+    <div class="mm-brand">
+      <span class="mm-logo">📱</span>
+      <span class="mm-title">MentorMe</span>
+    </div>
+    <p class="mm-tagline">Learn. Grow. Budget. Build your future.</p>
   </header>
 
-  <main>
-    <section>
-      <h2>What is MentorMe?</h2>
-      <p>MentorMe helps teens and young adults gain life skills with lessons, quizzes, and budgeting tools.</p>
+  <main class="mm-main">
+    <section class="mm-hero card">
+      <h1>Welcome to MentorMe</h1>
+      <p class="mm-sub">Learning life skills – money, choices, safety, health, careers.</p>
+
+      {% if topics and topics|length > 0 %}
+      <div class="mm-topics">
+        {% for t in topics %}
+          <a class="chip" href="{{ url_for('topic_detail', topic_id=t.id) if 'topic_detail' in current_app.view_functions else '#' }}">
+            {{ t.title }}
+          </a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </section>
 
-    <section>
-      <h2>Get Started</h2>
-      <a href="/signup" class="btn">Sign Up</a>
-      <a href="/login" class="btn">Log In</a>
+    <section class="mm-cta card">
+      <h2>Start Your Member Journey</h2>
+      <div class="mm-buttons">
+        <a class="btn btn-primary" href="{{ url_for('register') if 'register' in current_app.view_functions else '/register' }}">Sign Up</a>
+        <a class="btn btn-secondary" href="{{ url_for('login') if 'login' in current_app.view_functions else '/login' }}">Log In</a>
+      </div>
     </section>
   </main>
 
-  <footer>
-    <p>© 2025 GoodMeasureApps</p>
+  <footer class="mm-footer">
+    <p>© {{ 2025 }} GoodMeasureApps</p>
   </footer>
 </body>
 </html>
