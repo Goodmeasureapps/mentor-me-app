@@ -1,13 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MentorMe App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MentorMe App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body style="background-color:#0A2342; color:white; font-family:sans-serif; text-align:center;">
-    <h1>Welcome to MentorMe</h1>
-    <p>Your Flask app is running successfully on Render 🎉</p>
+<body>
+  <header>
+    <h1>📱 MentorMe</h1>
+    <p>Learn. Grow. Budget. Build your future.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>What is MentorMe?</h2>
+      <p>MentorMe helps teens and young adults gain life skills with lessons, quizzes, and budgeting tools.</p>
+    </section>
+
+    <section>
+      <h2>Get Started</h2>
+      <a href="/signup" class="btn">Sign Up</a>
+      <a href="/login" class="btn">Log In</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 GoodMeasureApps</p>
+  </footer>
 </body>
 </html>
-
