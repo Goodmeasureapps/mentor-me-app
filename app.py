@@ -49,6 +49,14 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 
 app = Flask(__name__)
+
+@app.context_processor
+def inject_has_endpoint():
+    def has_endpoint(name: str) -> bool:
+        return name in app.view_functions
+    return dict(has_endpoint=has_endpoint)
+
+
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
