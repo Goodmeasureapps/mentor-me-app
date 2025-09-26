@@ -34,14 +34,15 @@
       {% endif %}
     </section>
 
-    <section class="mm-cta card">
-      <h2>Start Your Member Journey</h2>
-      <div class="mm-buttons">
-        <a class="btn btn-primary" href="{{ url_for('register') if has_endpoint('register') else '/register' }}">Sign Up</a>
-        <a class="btn btn-secondary" href="{{ url_for('login') if has_endpoint('login') else '/login' }}">Log In</a>
-      </div>
-    </section>
-  </main>
+   <section class="mm-cta card">
+  <h2>Start Your Member Journey</h2>
+  <div class="mm-buttons">
+    <a class="btn btn-primary" href="{{ url_for('register') }}">Sign Up</a>
+    <a class="btn btn-secondary" href="{{ url_for('login') }}">Log In</a>
+  </div>
+</section>
+</main>
+
 
   <footer class="mm-footer">
     <p>© {{ 2025 }} GoodMeasureApps</p>
