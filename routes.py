@@ -12,8 +12,16 @@ from flask import render_template, request, redirect, url_for, flash, send_file,
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from app import app, db
-from models import User, Topic, Quiz, QuizResult, ChecklistProgress, SignedNDA, CareerPath, TeenSupport, JobOpportunity, UserInterest, SportsQuizResult, WeeklyDrawingEntry, CategoryQuizResult, WeeklyDrawing, UserSettings, UserFeedback, ResourceLibrary, UserBadge, AIChatHistory, TeenAccomplishment
-from email_service import send_parent_welcome_email, send_consent_confirmation_email, generate_consent_token, verify_consent_token
+from models import (
+    User, Topic, Quiz, QuizResult, ChecklistProgress, SignedNDA, CareerPath,
+    TeenSupport, JobOpportunity, UserInterest, SportsQuizResult, WeeklyDrawingEntry,
+    CategoryQuizResult, WeeklyDrawing, UserSettings, UserFeedback, ResourceLibrary,
+    UserBadge, AIChatHistory, TeenAccomplishment
+)
+from email_service import (
+    send_parent_welcome_email, send_consent_confirmation_email,
+    generate_consent_token, verify_consent_token
+)
 from sms_service import send_temp_password_sms
 from profanity_filter import profanity_filter
 
@@ -27,38 +35,34 @@ def validate_and_sanitize_input(value, field_type='text', max_length=255):
     """Validate and sanitize user input to prevent XSS and injection attacks"""
     if not value:
         return ''
-    
+
     # Basic sanitization
     value = str(value).strip()
-    
+
     # Length validation
     if len(value) > max_length:
         raise ValueError(f"Input too long (max {max_length} characters)")
-    
+
     if field_type == 'email':
         try:
-            # Validate email format - allow all domains and providers
-            # Use deliverability=False to skip DNS checks for maximum acceptance
+            # Validate email format — allow all domains and providers
             email_validator.validate_email(value, check_deliverability=False)
-        except email_validator.EmailNotValidError as e:
-            # Fallback to basic regex pattern for maximum acceptance
-            # This accepts most email formats including new TLDs and international domains
+        except email_validator.EmailNotValidError:
+            # Fallback regex for broad acceptance
             basic_email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             if not re.match(basic_email_pattern, value):
                 raise ValueError("Please enter a valid email address format")
-    
+
     elif field_type == 'username':
-        # Username validation: alphanumeric and underscore only
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', value):
             raise ValueError("Username must be 3-20 characters, letters, numbers, and underscore only")
-    
+
     elif field_type == 'password':
-        # Password strength validation
         if len(value) < 8:
             raise ValueError("Password must be at least 8 characters long")
         if not re.search(r'[A-Za-z]', value) or not re.search(r'[0-9]', value):
             raise ValueError("Password must contain both letters and numbers")
-    
+
     elif field_type == 'age':
         try:
             age = int(value)
@@ -67,37 +71,36 @@ def validate_and_sanitize_input(value, field_type='text', max_length=255):
             return age
         except ValueError:
             raise ValueError("Invalid age")
-    
+
     elif field_type == 'phone':
-        # Basic phone validation
         phone_clean = re.sub(r'[^\d+]', '', value)
         if not re.match(r'^\+?[1-9]\d{9,14}$', phone_clean):
             raise ValueError("Invalid phone number format")
         return phone_clean
-    
+
     # HTML escape for text fields to prevent XSS
     if field_type in ['text', 'name']:
         value = html.escape(value)
-    
+
     return value
 
 def rate_limit(key, limit=5, window=300):
     """Simple rate limiting (5 requests per 5 minutes)"""
     now = datetime.utcnow().timestamp()
-    
+
     if key not in rate_limit_store:
         rate_limit_store[key] = []
-    
+
     # Clean old entries
-    rate_limit_store[key] = [timestamp for timestamp in rate_limit_store[key] if now - timestamp < window]
-    
+    rate_limit_store[key] = [t for t in rate_limit_store[key] if now - t < window]
+
     if len(rate_limit_store[key]) >= limit:
         return False
-    
+
     rate_limit_store[key].append(now)
     return True
 
-# Document constants
+# --------- Document constants ----------
 TERMS_OF_USE = f"""MentorMe - Terms of Use
 Last updated: {datetime.utcnow().date()}
 
@@ -112,7 +115,9 @@ This template requires legal review before publishing.
 PRIVACY_POLICY = f"""MentorMe - Privacy Policy
 Last updated: {datetime.utcnow().date()}
 
-We collect minimal account info (name, email, age). For children under 8 in COPPA jurisdictions, parental consent is required before collecting personal information. Parents can request data deletion. This is a template and must be reviewed for COPPA and local laws.
+We collect minimal account info (name, email, age). For children under 8 in COPPA jurisdictions,
+parental consent is required before collecting personal information. Parents can request data deletion.
+This is a template and must be reviewed for COPPA and local laws.
 """
 
 NDA_TEXT = f"""Simple Mutual NDA (sample)
@@ -142,15 +147,14 @@ def generate_quiz_for_topic(title):
         return [q1, q2, q3]
     return [q1, q2]
 
+# --------- Routes ----------
 @app.route('/')
 def index():
     from app_config import AppConfig
-    
+
     try:
-        # Try fetching topics from the database
         topics = Topic.query.order_by(Topic.title.asc()).all()
     except Exception as e:
-        # Fallback if the table doesn't exist or DB fails
         topics = []
         import logging
         logging.error(f"Failed to load topics: {e}")
@@ -165,16 +169,18 @@ def index():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
-    resp.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-    resp.headers['ETag'] = f'mentorme-fresh-{int(datetime.utcnow().timestamp())}'
-    return resp@', methapp.route('/registerods=['GET', 'POST'])
-def register():
-    @app.route('/login', methods=['GET', 'POST'])
+    # either a datetime object or a RFC1123 string is fine
+    resp.headers['Last-Modified'] = datetime.utcnow()
+    resp.headers['ETag'] = f"mentorme-fresh-{int(datetime.utcnow().timestamp())}"
+    return resp
+
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
-        
+
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
@@ -183,21 +189,24 @@ def login():
         else:
             flash('Invalid email or password', 'danger')
             return render_template('login.html')
-    
+
+    # GET
     return render_template('login.html')
 
 
-
+@app.route('/register', methods=['GET', 'POST'])
+def register():
     if request.method == 'POST':
         # Rate limiting for registration attempts
         client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
         if not rate_limit(f"register_{client_ip}", limit=3, window=300):
             flash('Too many registration attempts. Please try again in 5 minutes.', 'danger')
             return render_template('register.html')
-        
+
         registration_type = validate_and_sanitize_input(
             request.form.get('registration_type', 'solo_teen'), 'text', 50
         )
+
         
         try:
             if registration_type == 'solo_teen':
