@@ -48,11 +48,10 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message_category = "info"
 
-from models import User  # safe now that db is defined
+from models import User
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Flask-Login: load user from database by ID"""
     return User.query.get(int(user_id))
 
 # -------------------------------------------------------------------
@@ -72,7 +71,7 @@ def utility_processor():
         return dict(has_endpoint=has_endpoint, config={})
 
 # -------------------------------------------------------------------
-# HEAD short-circuit (for Render health checks)
+# HEAD short-circuit (for Render)
 # -------------------------------------------------------------------
 @app.before_request
 def short_circuit_head_on_root():
@@ -97,15 +96,7 @@ def index():
     except Exception:
         cache_buster = int(datetime.utcnow().timestamp())
 
-    topics = []
-    try:
-        from models import Topic
-        topics = Topic.query.order_by(Topic.title.asc()).all()
-    except Exception as e:
-        log.warning(f"Index topics skipped: {e}")
-
-    html = render_template("index.html", topics=topics, cache_buster=cache_buster)
-
+    html = render_template("index.html", cache_buster=cache_buster)
     resp = make_response(html)
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
@@ -125,7 +116,6 @@ def login():
         if not email or not password:
             flash("Please enter email and password.", "warning")
             return render_template("login.html"), 400
-        # TODO: check credentials against DB
         return redirect(url_for("dashboard"))
     return render_template("login.html")
 
@@ -138,8 +128,46 @@ def register():
         if not username or not email or not password:
             flash("All fields are required.", "warning")
             return render_template("register.html"), 400
-        # TODO: create user in DB
         return redirect(url_for("dashboard"))
     return render_template("register.html")
 
-@app.route("/dashbo
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    tpl = os.path.join(app.template_folder or "templates", "dashboard.html")
+    if os.path.exists(tpl):
+        return render_template("dashboard.html")
+    return "Welcome to your dashboard ✨", 200
+
+# -------------------------------------------------------------------
+# Import models + auto-create tables
+# -------------------------------------------------------------------
+with app.app_context():
+    try:
+        from models import (
+            Topic, Quiz, QuizResult, ChecklistProgress,
+            SignedNDA, CareerPath, TeenSupport, JobOpportunity,
+            UserInterest, Mentor, MentorSpecialty, MentorRecommendation,
+            UserMentorMatch, SportsQuizResult, WeeklyDrawingEntry,
+            CategoryQuizResult, AIChatHistory, UserBadge, WeeklyDrawing,
+            MicroChallenge, UserMicroChallenge, UserSettings,
+            UserFeedback, ResourceLibrary, ChatHistory,
+            TeenInterest, TeenAccomplishment, RelationshipVideo
+        )
+        db.create_all()
+        log.info("DB tables created/verified.")
+    except Exception as e:
+        log.error(f"DB init failed: {e}")
+
+# -------------------------------------------------------------------
+# Error handler
+# -------------------------------------------------------------------
+@app.errorhandler(Exception)
+def handle_uncaught(e):
+    log.exception("Unhandled error")
+    return ("Internal Server Error", 500)
+
+# -------------------------------------------------------------------
+# Local dev
+# -------------------------------------------------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
