@@ -37,7 +37,8 @@
     <section class="cta card">
       <h2 class="cta-title">Start Your Member Journey</h2>
       <div class="cta-actions">
-        <a class="btn btn-primary" href="{{ url_for('signup') }}">Sign Up</a>
+        <!-- Fixed: point to register endpoint -->
+        <a class="btn btn-primary" href="{{ url_for('register') }}">Sign Up</a>
         <a class="btn btn-outline" href="{{ url_for('login') }}">Log In</a>
       </div>
     </section>
