@@ -380,28 +380,7 @@ def register():
     
     return render_template('register.html')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        temp_password = request.form.get('temp_password', '').strip()
-        selected_user_type = request.form.get('user_type', '').strip()
-        
-        if not username:
-            flash('Username is required', 'danger')
-            return render_template('login.html')
-        
-        if not selected_user_type:
-            flash('Please select whether you are logging in as a Teen or Parent', 'warning')
-            return render_template('login.html')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if not user:
-            flash('Invalid username or password', 'danger')
-            return render_template('login.html')
-        
+     
         # Check if selected user type matches account type
         if selected_user_type == 'teen' and user.role != 'teen':
             flash(f'This username belongs to a {user.role} account, but you selected Teen login. Please select the correct account type.', 'warning')
