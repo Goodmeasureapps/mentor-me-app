@@ -74,44 +74,7 @@ def healthz():
 
 # ---------- Home ----------
 @app.route("/", methods=["GET"])
-def index():# ---------- Home ----------
-@app.route("/", methods=["GET"])
 def index():
-    try:
-        from app_config import AppConfig
-        cache_buster = AppConfig.get_cache_buster()
-    except Exception:
-        cache_buster = int(datetime.utcnow().timestamp())
-
-    topics = []
-    try:
-        from models import Topic
-        topics = Topic.query.order_by(Topic.title.asc()).all()
-    except Exception as e:
-        log.warning(f"Index topics skipped: {e}")
-
-    html = render_template("index.html", topics=topics, cache_buster=cache_buster)
-
-    resp = make_response(html)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    resp.headers["Pragma"] = "no-cache"
-    resp.headers["Expires"] = "0"
-    resp.headers["Last-Modified"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-    resp.headers["ETag"] = f"mentorme-{cache_buster}"
-    return resp
-
-
-# ---------- Auth Routes ----------
-@app.route("/register", methods=["GET"])
-def register():
-    """Simple placeholder until full form is added"""
-    return render_template("register.html")
-
-@app.route("/login", methods=["GET"])
-def login():
-    """Simple placeholder until full form is added"""
-    return render_template("login.html")
-
     try:
         from app_config import AppConfig
         cache_buster = AppConfig.get_cache_buster()
@@ -138,13 +101,17 @@ def login():
 # ---------- Placeholder Auth Routes ----------
 @app.route("/register", methods=["GET"])
 def register():
-    # Replace with real register.html later
-    return render_template("register.html") if os.path.exists("templates/register.html") else "Register page coming soon!", 200
+    """Simple placeholder until full form is added"""
+    if os.path.exists("templates/register.html"):
+        return render_template("register.html")
+    return "Register page coming soon!", 200
 
 @app.route("/login", methods=["GET"])
 def login():
-    # Replace with real login.html later
-    return render_template("login.html") if os.path.exists("templates/login.html") else "Login page coming soon!", 200
+    """Simple placeholder until full form is added"""
+    if os.path.exists("templates/login.html"):
+        return render_template("login.html")
+    return "Login page coming soon!", 200
 
 # ---------- Import models + auto-create tables ----------
 with app.app_context():
