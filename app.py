@@ -33,23 +33,18 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 log.info(f"DB: using {db_url.split('://',1)[0]}://***")
 
-# ---------- Login ----------
 # ---------- Login (Flask-Login setup) ----------
-if LoginManager and db:
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-    login_manager.login_view = "login"
-    login_manager.login_message_category = "info"
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+login_manager.login_message_category = "info"
 
-    from models import User  # import here to avoid circular import
+from models import User  # safe now that db is defined
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        """Flask-Login: load user from database by ID"""
-        return User.query.get(int(user_id))
-else:
-    log.info("Flask-Login not installed or DB missing; skipping login setup.")
-
+@login_manager.user_loader
+def load_user(user_id):
+    """Flask-Login: load user from database by ID"""
+    return User.query.get(int(user_id))
 
 # ---------- Inject helpers into Jinja ----------
 @app.context_processor
@@ -103,11 +98,22 @@ def index():
     resp.headers["ETag"] = f"mentorme-{cache_buster}"
     return resp
 
+# ---------- Placeholder Auth Routes ----------
+@app.route("/register", methods=["GET"])
+def register():
+    # Replace with real register.html later
+    return render_template("register.html") if os.path.exists("templates/register.html") else "Register page coming soon!", 200
+
+@app.route("/login", methods=["GET"])
+def login():
+    # Replace with real login.html later
+    return render_template("login.html") if os.path.exists("templates/login.html") else "Login page coming soon!", 200
+
 # ---------- Import models + auto-create tables ----------
 with app.app_context():
     try:
         from models import (
-            User, Topic, Quiz, QuizResult, ChecklistProgress,
+            Topic, Quiz, QuizResult, ChecklistProgress,
             SignedNDA, CareerPath, TeenSupport, JobOpportunity,
             UserInterest, Mentor, MentorSpecialty, MentorRecommendation,
             UserMentorMatch, SportsQuizResult, WeeklyDrawingEntry,
