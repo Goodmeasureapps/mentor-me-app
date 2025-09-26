@@ -2,20 +2,20 @@
 
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Flask, request, render_template, make_response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# ---------- Optional extensions (import if available) ----------
+# ---------- Optional extensions ----------
 try:
     from flask_sqlalchemy import SQLAlchemy
 except Exception:
-    SQLAlchemy = None  # continue without DB if not installed
+    SQLAlchemy = None
 
 try:
     from flask_login import LoginManager
 except Exception:
-    LoginManager = None  # continue without login if not installed
+    LoginManager = None
 
 # ---------- App base ----------
 app = Flask(__name__)
@@ -31,7 +31,7 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-prod
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("mentorme")
 
-# ---------- Database (optional) ----------
+# ---------- Database ----------
 db = None
 if SQLAlchemy:
     db_url = (
@@ -46,7 +46,17 @@ if SQLAlchemy:
 else:
     log.warning("Flask-SQLAlchemy not installed; running without a database.")
 
-# ---------- Login (optional) ----------
+# ---------- Define Topic model inline ----------
+if db:
+    from sqlalchemy import Integer, String
+    from sqlalchemy.orm import Mapped, mapped_column
+
+    class Topic(db.Model):  # type: ignore
+        __tablename__ = "topics"
+        id: Mapped[int] = mapped_column(Integer, primary_key=True)
+        title: Mapped[str] = mapped_column(String(255), nullable=False)
+
+# ---------- Login ----------
 login_manager = None
 if LoginManager:
     login_manager = LoginManager()
@@ -76,7 +86,7 @@ def short_circuit_head_on_root():
 def healthz():
     return ("", 200)
 
-# ---------- Home (GET only, guarded, cache-busted) ----------
+# ---------- Home ----------
 @app.route("/", methods=["GET"])
 def index():
     try:
@@ -86,12 +96,12 @@ def index():
         cache_buster = int(datetime.utcnow().timestamp())
 
     topics = []
-    try:
-        from models import Topic  # optional
-        if db:
+    if db:
+        try:
             topics = Topic.query.order_by(Topic.title.asc()).all()
-    except Exception as e:
-        log.info(f"Index topics skipped: {e}")
+        except Exception as e:
+            log.error(f"DB error in index(): {e}")
+            topics = []
 
     html = render_template("index.html", topics=topics, cache_buster=cache_buster)
 
@@ -103,24 +113,21 @@ def index():
     resp.headers["ETag"] = f"mentorme-{cache_buster}"
     return resp
 
-# ---------- Optional routes + safe DB table creation ----------
+# ---------- Startup DB init ----------
 with app.app_context():
-    try:
-        # from routes import *  # uncomment if you expose extra endpoints
-        pass
-    except Exception as e:
-        log.info(f"Optional routes not loaded: {e}")
-
     if db:
         try:
-            db.create_all()  # type: ignore
+            db.create_all()  # creates topics table if missing
+            if Topic.query.first() is None:
+                db.session.add_all([
+                    Topic(title="Financial Literacy"),
+                    Topic(title="Career Skills"),
+                    Topic(title="Entrepreneurship"),
+                ])
+                db.session.commit()
             log.info("DB tables created/verified.")
         except Exception as e:
-            msg = str(e)
-            if "authentication failed" in msg or "does not exist" in msg:
-                log.error("Database not ready/authorized; app will still run.")
-            else:
-                log.error(f"DB init warning: {e}")
+            log.error(f"DB init failed: {e}")
 
 # ---------- Global error handler ----------
 @app.errorhandler(Exception)
