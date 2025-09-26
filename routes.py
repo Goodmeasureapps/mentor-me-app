@@ -146,14 +146,21 @@ def generate_quiz_for_topic(title):
 def index():
     from app_config import AppConfig
     
-    topics = Topic.query.order_by(Topic.title.asc()).all()
-    
-    # Render with fresh configuration and cache busting
-    response = render_template('index.html', 
-                             topics=topics, 
-                             cache_buster=AppConfig.get_cache_buster())
-    
-    # Force fresh content with cache busting  
+    try:
+        # Try fetching topics from the database
+        topics = Topic.query.order_by(Topic.title.asc()).all()
+    except Exception as e:
+        # Fallback if the table doesn't exist or DB fails
+        topics = []
+        import logging
+        logging.error(f"Failed to load topics: {e}")
+
+    response = render_template(
+        'index.html',
+        topics=topics,
+        cache_buster=AppConfig.get_cache_buster()
+    )
+
     resp = make_response(response)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
@@ -161,6 +168,7 @@ def index():
     resp.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     resp.headers['ETag'] = f'mentorme-fresh-{int(datetime.utcnow().timestamp())}'
     return resp
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
