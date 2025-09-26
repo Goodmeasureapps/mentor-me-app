@@ -1,37 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login - MentorMe</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Log In</h1>
+{% extends "base.html" %}
+{% block title %}Log In • MentorMe{% endblock %}
+{% block content %}
+  <section class="mm-hero" style="max-width:720px;margin:1rem auto;">
+    <h1 class="mm-title">Log In</h1>
+    <p class="mm-sub">Choose your role and enter your credentials.</p>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST" action="{{ url_for('login') }}">
-            <label for="email">Email:</label>
-            <input type="email" name="email" required>
-
-            <label for="password">Password:</label>
-            <input type="password" name="password" required>
-
-            <button type="submit" class="btn">Login</button>
-        </form>
-
-        <p>Don't have an account? 
-            <a href="{{ url_for('register') }}">Sign Up</a>
-        </p>
+    <div class="mm-chips" style="margin-bottom:1rem;">
+      <span class="mm-chip">Independent Teen (18–19)</span>
+      <span class="mm-chip">Teen (8–17)</span>
+      <span class="mm-chip">Parent/Guardian</span>
     </div>
-</body>
-</html>
+
+    <form method="post" action="{{ url_for('login') }}" class="mm-form">
+      <!-- If you use CSRFProtect, UNCOMMENT the next line -->
+      {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+
+      <label class="mm-label" for="email">Email</label>
+      <input class="mm-input" id="email" name="email" type="email" required>
+
+      <label class="mm-label" for="password">Password</label>
+      <input class="mm-input" id="password" name="password" type="password" required>
+
+      <div class="mm-btn-row" style="margin-top:1rem;">
+        <button class="mm-btn mm-btn-primary" type="submit">Login</button>
+        <a class="mm-btn mm-btn-outline" href="{{ url_for('register') }}">Create account</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
