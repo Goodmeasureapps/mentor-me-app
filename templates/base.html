@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}MentorMe{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v={{ cache_buster }}">
+</head>
+<body class="mm-bg">
+  <header class="mm-header">
+    <div class="mm-brand">MentorMe</div>
+    <p class="mm-tagline">Learn. Grow. Budget. Build your future.</p>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="mm-footer">
+    <p>© 2025 GoodMeasureApps</p>
+  </footer>
+</body>
+</html>
