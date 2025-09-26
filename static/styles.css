@@ -1,28 +1,137 @@
-body {
-  background-color: #0A2342;
-  color: white;
-  font-family: 'Segoe UI', sans-serif;
+/* General body background */
+body.mm-bg {
   margin: 0;
-  padding: 0;
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(180deg, #4a00e0, #8e2de2);
+  color: #fff;
+}
+
+/* Header */
+.mm-header {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.mm-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.mm-tagline {
+  color: #ffeb3b;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Welcome section */
+.mm-hero {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: rgba(0,0,0,0.3);
+  border-radius: 1rem;
+  margin: 1rem;
+}
+
+.mm-title {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.mm-sub {
+  color: #ffd600;
+  margin-top: 0.5rem;
+}
+
+.mm-chips {
+  margin-top: 1rem;
+}
+
+.mm-chip {
+  background: #666;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  margin: 0.2rem;
+  border-radius: 20px;
+  display: inline-block;
+  font-size: 0.85rem;
+}
+
+/* CTA Section */
+.mm-cta {
+  text-align: center;
+  padding: 2rem 1rem;
+  margin: 1rem;
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.05);
+}
+
+.mm-cta-title {
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.mm-btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mm-btn {
+  display: inline-block;
+  text-decoration: none;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  border-radius: 30px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* Primary button */
+.mm-btn-primary {
+  background: linear-gradient(90deg, #ff9800, #ffc107);
+  color: #000;
+}
+
+.mm-btn-primary:hover {
+  opacity: 0.85;
+}
+
+/* Outline button */
+.mm-btn-outline {
+  border: 2px solid #fff;
+  color: #fff;
+  background: transparent;
+}
+
+.mm-btn-outline:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Showcase grid */
+.mm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 2rem 1rem;
+}
+
+.mm-tile {
+  background: rgba(0,0,0,0.2);
+  border-radius: 1rem;
+  padding: 1rem;
   text-align: center;
 }
 
-header {
-  padding: 2rem;
-  background-color: #102A4D;
+.mm-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 
-h1 {
-  color: #FFD700;
-}
-
-.btn {
-  display: inline-block;
-  margin: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: #FFD700;
-  color: #0A2342;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
+/* Footer */
+.mm-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 1rem;
+  background: rgba(0,0,0,0.4);
 }
