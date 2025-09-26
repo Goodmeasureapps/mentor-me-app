@@ -167,10 +167,7 @@ def index():
     resp.headers['Expires'] = '0'
     resp.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     resp.headers['ETag'] = f'mentorme-fresh-{int(datetime.utcnow().timestamp())}'
-    return resp
-
-
-@app.route('/register', methods=['GET', 'POST'])
+    return resp@', methapp.route('/registerods=['GET', 'POST'])
 def register():
     @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -188,6 +185,9 @@ def login():
             return render_template('login.html')
     
     return render_template('login.html')
+
+
+
     if request.method == 'POST':
         # Rate limiting for registration attempts
         client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
