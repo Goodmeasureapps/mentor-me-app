@@ -34,10 +34,22 @@ db = SQLAlchemy(app)
 log.info(f"DB: using {db_url.split('://',1)[0]}://***")
 
 # ---------- Login ----------
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-login_manager.login_message_category = "info"
+# ---------- Login (Flask-Login setup) ----------
+if LoginManager and db:
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "login"
+    login_manager.login_message_category = "info"
+
+    from models import User  # import here to avoid circular import
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        """Flask-Login: load user from database by ID"""
+        return User.query.get(int(user_id))
+else:
+    log.info("Flask-Login not installed or DB missing; skipping login setup.")
+
 
 # ---------- Inject helpers into Jinja ----------
 @app.context_processor
