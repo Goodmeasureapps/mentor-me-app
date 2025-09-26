@@ -1,152 +1,3 @@
-import json
-import csv
-import io
-import zipfile
-import random
-import re
-import html
-import email_validator
-from datetime import datetime, timedelta
-from functools import wraps
-from flask import render_template, request, redirect, url_for, flash, send_file, jsonify, make_response, session
-from flask_login import login_user, logout_user, login_required, current_user
-from flask_wtf.csrf import CSRFProtect
-from app import app, db
-from models import (
-    User, Topic, Quiz, QuizResult, ChecklistProgress, SignedNDA, CareerPath,
-    TeenSupport, JobOpportunity, UserInterest, SportsQuizResult, WeeklyDrawingEntry,
-    CategoryQuizResult, WeeklyDrawing, UserSettings, UserFeedback, ResourceLibrary,
-    UserBadge, AIChatHistory, TeenAccomplishment
-)
-from email_service import (
-    send_parent_welcome_email, send_consent_confirmation_email,
-    generate_consent_token, verify_consent_token
-)
-from sms_service import send_temp_password_sms
-from profanity_filter import profanity_filter
-
-# Initialize CSRF protection (disabled for registration fix)
-# csrf = CSRFProtect(app)
-
-# Rate limiting storage (in production, use Redis)
-rate_limit_store = {}
-
-def validate_and_sanitize_input(value, field_type='text', max_length=255):
-    """Validate and sanitize user input to prevent XSS and injection attacks"""
-    if not value:
-        return ''
-
-    # Basic sanitization
-    value = str(value).strip()
-
-    # Length validation
-    if len(value) > max_length:
-        raise ValueError(f"Input too long (max {max_length} characters)")
-
-    if field_type == 'email':
-        try:
-            # Validate email format — allow all domains and providers
-            email_validator.validate_email(value, check_deliverability=False)
-        except email_validator.EmailNotValidError:
-            # Fallback regex for broad acceptance
-            basic_email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-            if not re.match(basic_email_pattern, value):
-                raise ValueError("Please enter a valid email address format")
-
-    elif field_type == 'username':
-        if not re.match(r'^[a-zA-Z0-9_]{3,20}$', value):
-            raise ValueError("Username must be 3-20 characters, letters, numbers, and underscore only")
-
-    elif field_type == 'password':
-        if len(value) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not re.search(r'[A-Za-z]', value) or not re.search(r'[0-9]', value):
-            raise ValueError("Password must contain both letters and numbers")
-
-    elif field_type == 'age':
-        try:
-            age = int(value)
-            if age < 8 or age > 19:
-                raise ValueError("Age must be between 8 and 19")
-            return age
-        except ValueError:
-            raise ValueError("Invalid age")
-
-    elif field_type == 'phone':
-        phone_clean = re.sub(r'[^\d+]', '', value)
-        if not re.match(r'^\+?[1-9]\d{9,14}$', phone_clean):
-            raise ValueError("Invalid phone number format")
-        return phone_clean
-
-    # HTML escape for text fields to prevent XSS
-    if field_type in ['text', 'name']:
-        value = html.escape(value)
-
-    return value
-
-def rate_limit(key, limit=5, window=300):
-    """Simple rate limiting (5 requests per 5 minutes)"""
-    now = datetime.utcnow().timestamp()
-
-    if key not in rate_limit_store:
-        rate_limit_store[key] = []
-
-    # Clean old entries
-    rate_limit_store[key] = [t for t in rate_limit_store[key] if now - t < window]
-
-    if len(rate_limit_store[key]) >= limit:
-        return False
-
-    rate_limit_store[key].append(now)
-    return True
-
-# --------- Document constants ----------
-TERMS_OF_USE = f"""MentorMe - Terms of Use
-Last updated: {datetime.utcnow().date()}
-
-Kid-friendly summary:
-- Be kind and respectful.
-- Don't share someone else's private info without permission.
-- If you break rules we may limit access.
-
-This template requires legal review before publishing.
-"""
-
-PRIVACY_POLICY = f"""MentorMe - Privacy Policy
-Last updated: {datetime.utcnow().date()}
-
-We collect minimal account info (name, email, age). For children under 8 in COPPA jurisdictions,
-parental consent is required before collecting personal information. Parents can request data deletion.
-This is a template and must be reviewed for COPPA and local laws.
-"""
-
-NDA_TEXT = f"""Simple Mutual NDA (sample)
-Date: {datetime.utcnow().date()}
-
-This is a demo NDA. Replace with your finalized NDA and have it reviewed by counsel.
-"""
-
-def generate_quiz_for_topic(title):
-    """Generate automatic quiz questions for a topic"""
-    q1 = {
-        'q': f'Which is a good practice about {title.lower()}?',
-        'choices': ['Ignore it', 'Think and ask trusted adult', 'Post immediately'],
-        'answer': 1
-    }
-    q2 = {
-        'q': f'If you are unsure about {title.lower()}, you should:',
-        'choices': ['Do nothing and stay quiet', 'Ask a trusted adult or teacher', 'Share with everyone'],
-        'answer': 1
-    }
-    if len(title) % 2 == 0:
-        q3 = {
-            'q': f'What is an action step related to {title.lower()}?',
-            'choices': ['Avoid thinking', 'Take a small responsible action', 'Blame others'],
-            'answer': 1
-        }
-        return [q1, q2, q3]
-    return [q1, q2]
-
 # --------- Routes ----------
 @app.route('/')
 def index():
@@ -176,12 +27,11 @@ def index():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # GET: just show the form
+    # GET → show form
     if request.method == 'GET':
         return render_template('register.html')
 
-    # POST: your existing logic
-    # Rate limiting for registration attempts
+    # POST → process registration
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
     if not rate_limit(f"register_{client_ip}", limit=3, window=300):
         flash('Too many registration attempts. Please try again in 5 minutes.', 'danger')
@@ -193,193 +43,276 @@ def register():
 
     try:
         if registration_type == 'solo_teen':
-            # ... keep the rest of your existing POST logic here ...
+            # Solo Teen Registration with validation
+            name = validate_and_sanitize_input(request.form.get('teen_name', ''), 'name', 100)
+            username = validate_and_sanitize_input(request.form.get('teen_username', ''), 'username', 20)
+            email = validate_and_sanitize_input(request.form.get('teen_email', ''), 'email', 255)
+            password = validate_and_sanitize_input(request.form.get('teen_password', ''), 'password', 255)
+            confirm_password = request.form.get('teen_confirm_password', '').strip()
+            age = validate_and_sanitize_input(request.form.get('teen_age', ''), 'age', 3)
 
-                # Solo Teen Registration with validation
-                name = validate_and_sanitize_input(request.form.get('teen_name', ''), 'name', 100)
-                username = validate_and_sanitize_input(request.form.get('teen_username', ''), 'username', 20)
-                email = validate_and_sanitize_input(request.form.get('teen_email', ''), 'email', 255)
-                password = validate_and_sanitize_input(request.form.get('teen_password', ''), 'password', 255)
-                confirm_password = request.form.get('teen_confirm_password', '').strip()
-                age = validate_and_sanitize_input(request.form.get('teen_age', ''), 'age', 3)
-                
-                # Validate required fields
-                if not all([name, username, email, password, confirm_password]):
-                    flash('All fields are required', 'danger')
+            # Validate required fields
+            if not all([name, username, email, password, confirm_password]):
+                flash('All fields are required', 'danger')
+                return render_template('register.html')
+
+            if password != confirm_password:
+                flash('Passwords do not match', 'danger')
+                return render_template('register.html')
+
+            # Age validation (independent)
+            try:
+                age_int = int(age)
+                if age_int < 18 or age_int > 19:
+                    flash('Independent registration is only for ages 18-19. Ages 8-17 must use Teen + Parent.', 'danger')
                     return render_template('register.html')
-                
-                if password != confirm_password:
-                    flash('Passwords do not match', 'danger')
+            except (ValueError, TypeError):
+                flash('Please enter a valid age.', 'danger')
+                return render_template('register.html')
+
+            # Uniqueness checks
+            if User.query.filter_by(username=username).first():
+                flash('Username already taken', 'danger')
+                return render_template('register.html')
+            if User.query.filter_by(email=email).first():
+                flash('Email already registered', 'danger')
+                return render_template('register.html')
+
+            # Create user
+            user = User()
+            user.name = name
+            user.username = username
+            user.email = email
+            user.role = 'teen'
+            user.age = age_int
+            user.set_password(password)
+
+            # Apply session-based terms acceptance (if present)
+            if session.get('terms_accepted'):
+                user.terms_accepted = True
+                user.terms_accepted_at = datetime.utcnow()
+                user.privacy_accepted = True
+                user.privacy_accepted_at = datetime.utcnow()
+                if session.get('parent_consent_for_terms'):
+                    user.parent_consent_for_terms = True
+                    user.parent_consent_terms_at = datetime.utcnow()
+                # Clear session markers
+                session.pop('terms_accepted', None)
+                session.pop('terms_age', None)
+                session.pop('parent_consent_for_terms', None)
+
+            try:
+                db.session.add(user)
+                db.session.commit()
+                flash('Teen account created! You can now log in with your username.', 'success')
+                return redirect(url_for('login'))
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f"Solo teen registration error: {str(e)}")
+                flash('There was an error creating your account. Please try again or contact support.', 'danger')
+                return render_template('register.html')
+
+        elif registration_type == 'teen_parent':
+            # Teen + Parent Registration with validation
+            try:
+                teen_name = validate_and_sanitize_input(request.form.get('teen_name_joint', ''), 'name', 100)
+                teen_username = validate_and_sanitize_input(request.form.get('teen_username_joint', ''), 'username', 20)
+                teen_age = validate_and_sanitize_input(request.form.get('teen_age_joint', ''), 'age', 3)
+                teen_password = validate_and_sanitize_input(request.form.get('teen_password_joint', ''), 'password', 255)
+
+                parent_name = validate_and_sanitize_input(request.form.get('parent_name', ''), 'name', 100)
+                parent_username = validate_and_sanitize_input(request.form.get('parent_username', ''), 'username', 20)
+                parent_email = validate_and_sanitize_input(request.form.get('parent_email', ''), 'email', 255)
+                parent_password = validate_and_sanitize_input(request.form.get('parent_password', ''), 'password', 255)
+            except ValueError as e:
+                flash(str(e), 'danger')
+                return render_template('register.html')
+
+            # Required fields
+            if not all([teen_name, teen_username, teen_age, teen_password,
+                        parent_name, parent_username, parent_email, parent_password]):
+                flash('All fields are required for both teen and parent', 'danger')
+                return render_template('register.html')
+
+            # Age validation (joint path 8–17)
+            try:
+                teen_age_int = int(teen_age)
+                if teen_age_int < 8 or teen_age_int > 17:
+                    flash('Teen + Parent registration is only for ages 8–17. Ages 18–19 register independently.', 'danger')
                     return render_template('register.html')
-                
-                # Age validation for solo teen registration (must be 18-19)
-                try:
-                    age_int = int(age)
-                    if age_int < 18 or age_int > 19:
-                        flash('Independent registration is only for teens ages 18-19. Ages 8-17 should use Teen + Parent registration.', 'danger')
-                        return render_template('register.html')
-                except (ValueError, TypeError):
-                    flash('Please enter a valid age.', 'danger')
-                    return render_template('register.html')
-                
-                # Check if username or email already exists
-                if User.query.filter_by(username=username).first():
-                    flash('Username already taken', 'danger')
-                    return render_template('register.html')
-                    
-                if User.query.filter_by(email=email).first():
-                    flash('Email already registered', 'danger')
-                    return render_template('register.html')
-                
-                # Create new teen user
-                user = User()
-                user.name = name
-                user.username = username
-                user.email = email
-                user.role = 'teen'
-                user.age = age
-                user.set_password(password)
-        
-                # Apply terms acceptance from session if available
+            except (ValueError, TypeError):
+                flash('Please enter a valid age for the teen.', 'danger')
+                return render_template('register.html')
+
+            # Uniqueness checks
+            if User.query.filter_by(username=teen_username).first():
+                flash('Teen username already taken', 'danger')
+                return render_template('register.html')
+            if User.query.filter_by(username=parent_username).first():
+                flash('Parent username already taken', 'danger')
+                return render_template('register.html')
+            if User.query.filter_by(email=parent_email).first():
+                flash('Parent email already registered', 'danger')
+                return render_template('register.html')
+
+            # Create parent first
+            parent_user = User()
+            parent_user.name = parent_name
+            parent_user.username = parent_username
+            parent_user.email = parent_email
+            parent_user.role = 'parent'
+            parent_user.set_password(parent_password)
+
+            if session.get('terms_accepted'):
+                parent_user.terms_accepted = True
+                parent_user.terms_accepted_at = datetime.utcnow()
+                parent_user.privacy_accepted = True
+                parent_user.privacy_accepted_at = datetime.utcnow()
+                parent_user.parent_consent_for_terms = True
+                parent_user.parent_consent_terms_at = datetime.utcnow()
+
+            try:
+                db.session.add(parent_user)
+                db.session.flush()  # get parent_user.id
+
+                # Create teen linked to parent
+                parent_email_str = str(parent_email) if parent_email else ""
+                if '@' in parent_email_str:
+                    teen_email = f"teen.{teen_username}@{parent_email_str.split('@')[1]}"
+                else:
+                    teen_email = f"teen.{teen_username}@example.com"
+
+                teen_user = User()
+                teen_user.name = teen_name
+                teen_user.username = teen_username
+                teen_user.email = teen_email
+                teen_user.role = 'teen'
+                teen_user.age = teen_age_int
+                teen_user.parent_id = parent_user.id
+                teen_user.set_password(teen_password)
+
                 if session.get('terms_accepted'):
-                    user.terms_accepted = True
-                    user.terms_accepted_at = datetime.utcnow()
-                    user.privacy_accepted = True
-                    user.privacy_accepted_at = datetime.utcnow()
-                    
-                    if session.get('parent_consent_for_terms'):
-                        user.parent_consent_for_terms = True
-                        user.parent_consent_terms_at = datetime.utcnow()
-                    
-                    # Clear session terms data
+                    teen_user.terms_accepted = True
+                    teen_user.terms_accepted_at = datetime.utcnow()
+                    teen_user.privacy_accepted = True
+                    teen_user.privacy_accepted_at = datetime.utcnow()
+                    teen_user.parent_consent_for_terms = True
+                    teen_user.parent_consent_terms_at = datetime.utcnow()
                     session.pop('terms_accepted', None)
                     session.pop('terms_age', None)
                     session.pop('parent_consent_for_terms', None)
-                
-                try:
-                    db.session.add(user)
-                    db.session.commit()
-                    
-                    flash('Teen account created successfully! You can now log in with your username.', 'success')
-                    return redirect(url_for('login'))
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.error(f"Solo teen registration error: {str(e)}")
-                    flash('There was an error creating your account. Please try again or contact support.', 'danger')
-                    return render_template('register.html')
-            
-            elif registration_type == 'teen_parent':
-                # Teen + Parent Registration with validation
-                try:
-                    teen_name = validate_and_sanitize_input(request.form.get('teen_name_joint', ''), 'name', 100)
-                    teen_username = validate_and_sanitize_input(request.form.get('teen_username_joint', ''), 'username', 20)
-                    teen_age = validate_and_sanitize_input(request.form.get('teen_age_joint', ''), 'age', 3)
-                    teen_password = validate_and_sanitize_input(request.form.get('teen_password_joint', ''), 'password', 255)
-                    
-                    parent_name = validate_and_sanitize_input(request.form.get('parent_name', ''), 'name', 100)
-                    parent_username = validate_and_sanitize_input(request.form.get('parent_username', ''), 'username', 20)
-                    parent_email = validate_and_sanitize_input(request.form.get('parent_email', ''), 'email', 255)
-                    parent_password = validate_and_sanitize_input(request.form.get('parent_password', ''), 'password', 255)
-                except ValueError as e:
-                    flash(str(e), 'danger')
-                    return render_template('register.html')
-                
-                # Validate required fields
-                if not all([teen_name, teen_username, teen_age, teen_password, parent_name, parent_username, parent_email, parent_password]):
-                    flash('All fields are required for both teen and parent', 'danger')
-                    return render_template('register.html')
-                
-                # Age validation for teen+parent registration (must be 13-17)
-                try:
-                    teen_age_int = int(teen_age)
-                    if teen_age_int < 8 or teen_age_int > 17:
-                        flash('Teen + Parent registration is only for teens ages 8-17. Ages 18-19 should register independently.', 'danger')
-                        return render_template('register.html')
-                except (ValueError, TypeError):
-                    flash('Please enter a valid age for the teen.', 'danger')
-                    return render_template('register.html')
-                
-                # Check if usernames or email already exist
-                if User.query.filter_by(username=teen_username).first():
-                    flash('Teen username already taken', 'danger')
-                    return render_template('register.html')
-                    
-                if User.query.filter_by(username=parent_username).first():
-                    flash('Parent username already taken', 'danger')
-                    return render_template('register.html')
-                    
-                if User.query.filter_by(email=parent_email).first():
-                    flash('Parent email already registered', 'danger')
-                    return render_template('register.html')
-                
-                # Create parent user first
-                parent_user = User()
-                parent_user.name = parent_name
-                parent_user.username = parent_username
-                parent_user.email = parent_email
-                parent_user.role = 'parent'
-                parent_user.set_password(parent_password)
-                
-                # Apply terms acceptance from session if available
-                if session.get('terms_accepted'):
-                    parent_user.terms_accepted = True
-                    parent_user.terms_accepted_at = datetime.utcnow()
-                    parent_user.privacy_accepted = True
-                    parent_user.privacy_accepted_at = datetime.utcnow()
-                    parent_user.parent_consent_for_terms = True
-                    parent_user.parent_consent_terms_at = datetime.utcnow()
-                
-                try:
-                    db.session.add(parent_user)
-                    db.session.flush()  # Get parent ID without committing
-                    
-                    # Create teen user linked to parent (teen gets a unique email based on parent email)
-                    # Ensure parent_email is a string before splitting
-                    parent_email_str = str(parent_email) if parent_email else ""
-                    if '@' in parent_email_str:
-                        teen_email = f"teen.{teen_username}@{parent_email_str.split('@')[1]}"
-                    else:
-                        teen_email = f"teen.{teen_username}@example.com"  # fallback
-                    teen_user = User()
-                    teen_user.name = teen_name
-                    teen_user.username = teen_username
-                    teen_user.email = teen_email  # Use unique email for teen to avoid duplicate key violation
-                    teen_user.role = 'teen'
-                    teen_user.age = teen_age_int
-                    teen_user.parent_id = parent_user.id
-                    teen_user.set_password(teen_password)
-                    
-                    # Apply terms acceptance from session if available
-                    if session.get('terms_accepted'):
-                        teen_user.terms_accepted = True
-                        teen_user.terms_accepted_at = datetime.utcnow()
-                        teen_user.privacy_accepted = True
-                        teen_user.privacy_accepted_at = datetime.utcnow()
-                        teen_user.parent_consent_for_terms = True
-                        teen_user.parent_consent_terms_at = datetime.utcnow()
-                        
-                        # Clear session terms data
-                        session.pop('terms_accepted', None)
-                        session.pop('terms_age', None)
-                        session.pop('parent_consent_for_terms', None)
-                    
-                    db.session.add(teen_user)
-                    db.session.commit()
-                    
-                    flash('Both teen and parent accounts created successfully! You can both log in with your respective usernames.', 'success')
-                    return redirect(url_for('login'))
-                    
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.error(f"Registration error: {str(e)}")
-                    flash('There was an error creating your accounts. Please try again or contact support.', 'danger')
-                    return render_template('register.html')
-                
-        except ValueError as e:
-            flash(str(e), 'danger')
-            return render_template('register.html')
-    
+
+                db.session.add(teen_user)
+                db.session.commit()
+                flash('Teen and parent accounts created! You can both log in with your usernames.', 'success')
+                return redirect(url_for('login'))
+
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f"Registration error: {str(e)}")
+                flash('There was an error creating your accounts. Please try again or contact support.', 'danger')
+                return render_template('register.html')
+
+    except ValueError as e:
+        flash(str(e), 'danger')
+        return render_template('register.html')
+
     return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # GET → show form
+    if request.method == 'GET':
+        return render_template('login.html')
+
+    # POST → process login (username + role + optional temp password)
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    temp_password = request.form.get('temp_password', '').strip()
+    selected_user_type = request.form.get('user_type', '').strip()
+
+    if not username:
+        flash('Username is required', 'danger')
+        return render_template('login.html')
+    if not selected_user_type:
+        flash('Please select whether you are logging in as a Teen or Parent', 'warning')
+        return render_template('login.html')
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        flash('Invalid username or password', 'danger')
+        return render_template('login.html')
+
+    # Enforce correct account type
+    if selected_user_type == 'teen' and user.role != 'teen':
+        flash(f'This username belongs to a {user.role} account. Please select the correct type.', 'warning')
+        return render_template('login.html')
+    if selected_user_type == 'parent' and user.role != 'parent':
+        flash(f'This username belongs to a {user.role} account. Please select the correct type.', 'warning')
+        return render_template('login.html')
+
+    # Temporary password path
+    if temp_password:
+        if user.check_temp_password(temp_password):
+            user.clear_temp_password()
+            db.session.commit()
+
+            # Terms/privacy gating
+            if not user.terms_accepted or not user.privacy_accepted:
+                session['pending_login_user_id'] = user.id
+                flash('Please review and accept our Terms of Use and Privacy Policy to continue.', 'info')
+                return redirect(url_for('terms_privacy'))
+
+            if user.age and user.age < 18 and not user.parent_consent_for_terms:
+                session['pending_login_user_id'] = user.id
+                flash('Parental consent is required for your Terms of Use agreement.', 'warning')
+                return redirect(url_for('terms_privacy'))
+
+            login_user(user)
+            flash('Login successful with temporary password!', 'success')
+            return redirect(url_for('parent_portal' if user.role == 'parent' else 'teen_dashboard'))
+        else:
+            flash('Invalid or expired temporary password', 'danger')
+            return render_template('login.html')
+
+    # Regular password path
+    if password and user.check_password(password):
+        # Optional profile updates from form
+        city = request.form.get('city', '').strip()
+        age = request.form.get('age', '').strip()
+        if city:
+            user.city = city
+        if age and age.isdigit():
+            user.age = int(age)
+        elif age == "20":  # treat "20+" as 20
+            user.age = 20
+
+        db.session.commit()
+
+        # COPPA check
+        if user.age and user.age < 13 and not user.parental_consent:
+            flash('Your account requires parental consent. Please ask your parent to check their email and confirm your registration.', 'warning')
+            return render_template('login.html')
+
+        # Terms/privacy gating
+        if not user.terms_accepted or not user.privacy_accepted:
+            session['pending_login_user_id'] = user.id
+            flash('Please review and accept our Terms of Use and Privacy Policy to continue.', 'info')
+            return redirect(url_for('terms_privacy'))
+
+        if user.age and user.age < 18 and not user.parent_consent_for_terms:
+            session['pending_login_user_id'] = user.id
+            flash('Parental consent is required for your Terms of Use agreement.', 'warning')
+            return redirect(url_for('terms_privacy'))
+
+        login_user(user)
+        flash('Login successful! Your preferences have been updated.', 'success')
+        return redirect(url_for('parent_portal' if user.role == 'parent' else 'teen_dashboard'))
+
+    flash('Invalid username or password', 'danger')
+    return render_template('login.html')
+
 
      
         # Check if selected user type matches account type
