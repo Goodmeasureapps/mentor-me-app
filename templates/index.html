@@ -2,50 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MentorMe – Welcome</title>
-
-  <!-- Bust CSS cache whenever AppConfig says so -->
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='styles.css') }}?v={{ cache_buster }}">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MentorMe</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body class="mm-body">
+<body class="mm-bg">
   <header class="mm-header">
-    <div class="mm-brand">
-      <span class="mm-logo">📱</span>
-      <span class="mm-title">MentorMe</span>
-    </div>
+    <div class="mm-brand">📱 MentorMe</div>
     <p class="mm-tagline">Learn. Grow. Budget. Build your future.</p>
   </header>
 
-  <main class="mm-main">
-    <section class="mm-hero card">
-      <h1>Welcome to MentorMe</h1>
+  <main class="mm-wrap">
+    <section class="mm-card mm-hero">
+      <h1 class="mm-title">Welcome to<br>MentorMe</h1>
       <p class="mm-sub">Learning life skills – money, choices, safety, health, careers.</p>
 
-      {% if topics and topics|length > 0 %}
-      <div class="mm-topics">
-        {% for t in topics %}
-          <a class="chip" href="{{ url_for('topic_detail', topic_id=t.id) if has_endpoint('topic_detail') else '#' }}">
-            {{ t.title }}
-          </a>
-        {% endfor %}
+      <div class="mm-chips">
+        <span class="mm-chip">Money</span>
+        <span class="mm-chip">Choices</span>
+        <span class="mm-chip">Safety</span>
+        <span class="mm-chip">Health</span>
+        <span class="mm-chip">Careers</span>
       </div>
-      {% endif %}
     </section>
 
-   <section class="mm-cta card">
-  <h2>Start Your Member Journey</h2>
-  <div class="mm-buttons">
-    <a class="btn btn-primary" href="{{ url_for('register') }}">Sign Up</a>
-    <a class="btn btn-secondary" href="{{ url_for('login') }}">Log In</a>
-  </div>
-</section>
-</main>
+    <section class="mm-card mm-cta">
+      <h2 class="mm-cta-title">Start Your Member Journey</h2>
 
+      <!-- The ONLY interactive elements -->
+      <div class="mm-btn-row">
+        <a class="mm-btn mm-btn-primary" href="{{ url_for('signup') }}">Sign Up</a>
+        <a class="mm-btn mm-btn-outline" href="{{ url_for('login') }}">Login</a>
+      </div>
+    </section>
 
-  <footer class="mm-footer">
-    <p>© {{ 2025 }} GoodMeasureApps</p>
-  </footer>
+    <!-- non-clickable showcase blocks, purely visual -->
+    <section class="mm-grid">
+      <div class="mm-tile">
+        <div class="mm-icon">🏀</div>
+        <h3>Sports & Athletics</h3>
+        <p>7 major sports pathways</p>
+      </div>
+      <div class="mm-tile">
+        <div class="mm-icon">💼</div>
+        <h3>Career Paths</h3>
+        <p>9+ professional careers</p>
+      </div>
+      <div class="mm-tile">
+        <div class="mm-icon">🎨</div>
+        <h3>Creative Arts</h3>
+        <p>Music, design & media</p>
+      </div>
+      <div class="mm-tile">
+        <div class="mm-icon">🧪</div>
+        <h3>STEM Fields</h3>
+        <p>Technology & innovation</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="mm-footer">© {{ 2025 }} MentorMe. All rights reserved.</footer>
 </body>
 </html>
