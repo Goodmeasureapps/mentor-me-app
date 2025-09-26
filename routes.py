@@ -173,23 +173,7 @@ def index():
     resp.headers['Last-Modified'] = datetime.utcnow()
     resp.headers['ETag'] = f"mentorme-fresh-{int(datetime.utcnow().timestamp())}"
     return resp
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '').strip()
-
-        user = User.query.filter_by(email=email).first()
-        if user and user.check_password(password):
-            login_user(user)
-            flash('Welcome back!', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid email or password', 'danger')
-            return render_template('login.html')
-
+    
     # GET
     return render_template('login.html')
 
