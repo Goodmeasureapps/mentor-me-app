@@ -169,28 +169,32 @@ def index():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
-    # either a datetime object or a RFC1123 string is fine
     resp.headers['Last-Modified'] = datetime.utcnow()
     resp.headers['ETag'] = f"mentorme-fresh-{int(datetime.utcnow().timestamp())}"
     return resp
-    
-    # GET
-   
+
+
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        # Rate limiting for registration attempts
-        client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-        if not rate_limit(f"register_{client_ip}", limit=3, window=300):
-            flash('Too many registration attempts. Please try again in 5 minutes.', 'danger')
-            return render_template('register.html')
+    # GET: just show the form
+    if request.method == 'GET':
+        return render_template('register.html')
 
-        registration_type = validate_and_sanitize_input(
-            request.form.get('registration_type', 'solo_teen'), 'text', 50
-        )
+    # POST: your existing logic
+    # Rate limiting for registration attempts
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+    if not rate_limit(f"register_{client_ip}", limit=3, window=300):
+        flash('Too many registration attempts. Please try again in 5 minutes.', 'danger')
+        return render_template('register.html')
 
-        
-        try:
-            if registration_type == 'solo_teen':
+    registration_type = validate_and_sanitize_input(
+        request.form.get('registration_type', 'solo_teen'), 'text', 50
+    )
+
+    try:
+        if registration_type == 'solo_teen':
+            # ... keep the rest of your existing POST logic here ...
+
                 # Solo Teen Registration with validation
                 name = validate_and_sanitize_input(request.form.get('teen_name', ''), 'name', 100)
                 username = validate_and_sanitize_input(request.form.get('teen_username', ''), 'username', 20)
