@@ -3,14 +3,12 @@
 import os
 import logging
 from datetime import datetime
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, current_app
 from werkzeug.middleware.proxy_fix import ProxyFix
-
-# ---------- Optional extensions ----------
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
-# ---------- App base ----------
+# ---------- App setup ----------
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
@@ -41,26 +39,22 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message_category = "info"
 
-# Tell Flask-Login how to load a user from session
-@login_manager.user_loader
-def load_user(user_id: str):
-    try:
-        from models import User
-        return db.session.get(User, int(user_id))  # SQLAlchemy 2.0 style
-    except Exception as e:
-        log.error(f"user_loader error: {e}")
-        return None
-
-# ---------- Config injection ----------
+# ---------- Inject helpers into Jinja ----------
 @app.context_processor
-def inject_app_config():
+def utility_processor():
+    """Add helpers + config into Jinja templates"""
+    def has_endpoint(name):
+        return name in current_app.view_functions
     try:
         from app_config import AppConfig
-        return dict(config=AppConfig.load_config())
+        return dict(
+            has_endpoint=has_endpoint,
+            config=AppConfig.load_config()
+        )
     except Exception:
-        return dict(config={})
+        return dict(has_endpoint=has_endpoint, config={})
 
-# ---------- HEAD short-circuit for "/" ----------
+# ---------- HEAD short-circuit ----------
 @app.before_request
 def short_circuit_head_on_root():
     if request.method == "HEAD" and request.path == "/":
@@ -71,7 +65,7 @@ def short_circuit_head_on_root():
 def healthz():
     return ("", 200)
 
-# ---------- Home (GET only, guarded, cache-busted) ----------
+# ---------- Home ----------
 @app.route("/", methods=["GET"])
 def index():
     try:
@@ -97,15 +91,25 @@ def index():
     resp.headers["ETag"] = f"mentorme-{cache_buster}"
     return resp
 
-# ---------- Safe DB table creation ----------
+# ---------- Import models + auto-create tables ----------
 with app.app_context():
     try:
+        from models import (
+            User, Topic, Quiz, QuizResult, ChecklistProgress,
+            SignedNDA, CareerPath, TeenSupport, JobOpportunity,
+            UserInterest, Mentor, MentorSpecialty, MentorRecommendation,
+            UserMentorMatch, SportsQuizResult, WeeklyDrawingEntry,
+            CategoryQuizResult, AIChatHistory, UserBadge, WeeklyDrawing,
+            MicroChallenge, UserMicroChallenge, UserSettings,
+            UserFeedback, ResourceLibrary, ChatHistory,
+            TeenInterest, TeenAccomplishment, RelationshipVideo
+        )
         db.create_all()
         log.info("DB tables created/verified.")
     except Exception as e:
-        log.error(f"DB init warning: {e}")
+        log.error(f"DB init failed: {e}")
 
-# ---------- Global error handler ----------
+# ---------- Error handler ----------
 @app.errorhandler(Exception)
 def handle_uncaught(e):
     log.exception("Unhandled error")
