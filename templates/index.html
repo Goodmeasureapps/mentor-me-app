@@ -1,65 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MentorMe</title>
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='styles.css', v=cache_buster|default(1)) }}">
-</head>
-<body class="mm-bg">
-  <header class="mm-header">
-    <div class="mm-brand">MentorMe</div>
-    <p class="mm-tagline">Learn. Grow. Budget. Build your future.</p>
-  </header>
+{% extends "base.html" %}
+{% block title %}MentorMe{% endblock %}
 
-  <main>
-    <section class="mm-hero">
-      <h1 class="mm-title">
-        <span>Welcome to</span><br/>MentorMe
-      </h1>
-      <p class="mm-sub">
-        Learning life skills – money, choices, safety, health, careers.
-      </p>
+{% block content %}
+  <section class="mm-hero">
+    <h1 class="mm-title">
+      <span>Welcome to</span><br/>MentorMe
+    </h1>
+    <p class="mm-sub">
+      Learning life skills – money, choices, safety, health, careers.
+    </p>
 
-      <div class="mm-chips">
-        <span class="mm-chip">Money</span>
-        <span class="mm-chip">Choices</span>
-        <span class="mm-chip">Safety</span>
-        <span class="mm-chip">Health</span>
-        <span class="mm-chip">Careers</span>
-      </div>
-    </section>
+    <div class="mm-chips">
+      <span class="mm-chip">Money</span>
+      <span class="mm-chip">Choices</span>
+      <span class="mm-chip">Safety</span>
+      <span class="mm-chip">Health</span>
+      <span class="mm-chip">Careers</span>
+    </div>
+  </section>
 
-    <section class="mm-cta">
-      <h2 class="mm-cta-title">Start Your Member Journey</h2>
-      <div class="mm-btn-row">
-        <a class="mm-btn mm-btn-primary" href="{{ url_for('register') }}">Sign Up</a>
-        <a class="mm-btn mm-btn-outline" href="{{ url_for('login') }}">Log In</a>
-      </div>
-    </section>
+  <section class="mm-cta">
+    <h2 class="mm-cta-title">Start Your Member Journey</h2>
+    <div class="mm-btn-row">
+      <a class="mm-btn mm-btn-primary" href="{{ url_for('register') }}">Sign Up</a>
+      <a class="mm-btn mm-btn-outline" href="{{ url_for('login') }}">Log In</a>
+    </div>
+  </section>
 
-    <section class="mm-grid">
-      <article class="mm-tile">
-        <div class="mm-icon">🏀</div>
-        <h3>Sports & Athletics</h3>
-        <p>7 major sports pathways</p>
-      </article>
+  <section class="mm-grid">
+    <article class="mm-tile">
+      <div class="mm-icon">🏀</div>
+      <h3>Sports & Athletics</h3>
+      <p>7 major sports pathways</p>
+    </article>
 
-      <article class="mm-tile">
-        <div class="mm-icon">💼</div>
-        <h3>Career Paths</h3>
-        <p>9+ professional careers</p>
-      </article>
+    <article class="mm-tile">
+      <div class="mm-icon">💼</div>
+      <h3>Career Paths</h3>
+      <p>9+ professional careers</p>
+    </article>
 
-      <article class="mm-tile">
-        <div class="mm-icon">🎨</div>
-        <h3>Creative Arts</h3>
-        <p>Music, design & media</p>
-      </article>
+    <article class="mm-tile">
+      <div class="mm-icon">🎨</div>
+      <h3>Creative Arts</h3>
+      <p>Music, design & media</p>
+    </article>
 
-      <article class="mm-tile">
-        <div class="mm-icon">🧪</div>
-        <h3>STEM Fields</h3>
-        <p>Technology & innovation</p>
-      </a
+    <article class="mm-tile">
+      <div class="mm-icon">🧪</div>
+      <h3>STEM Fields</h3>
+      <p>Technology & innovation</p>
+    </article>
+  </section>
+{% endblock %}
