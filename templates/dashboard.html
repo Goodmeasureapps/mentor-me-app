@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Dashboard • MentorMe{% endblock %}
+{% block content %}
+<section class="mm-hero" style="max-width:1100px;margin:1rem auto;">
+  <h1 class="mm-title">Welcome{% if user and user.username %}, {{ user.username }}{% endif %} ✨</h1>
+  <p class="mm-sub">Choose where you want to go next.</p>
+
+  <div class="mm-chips" style="margin-top:1rem;">
+    <a class="mm-chip" href="{{ url_for('teen_home') }}">Teen Home</a>
+    <a class="mm-chip" href="{{ url_for('parent_home') }}">Parent Home</a>
+    <a class="mm-chip" href="{{ url_for('courses') }}">Courses</a>
+    <a class="mm-chip" href="{{ url_for('budget_tools') }}">Budget Tools</a>
+  </div>
+</section>
+
+<section class="mm-grid" style="max-width:1100px;margin:1rem auto 2rem;">
+  <article class="mm-tile">
+    <div class="mm-icon">📚</div>
+    <h3>Lessons</h3>
+    <p>Life skills modules & quizzes</p>
+  </article>
+  <article class="mm-tile">
+    <div class="mm-icon">💸</div>
+    <h3>Money</h3>
+    <p>Budget planner & savings goals</p>
+  </article>
+  <article class="mm-tile">
+    <div class="mm-icon">🛡️</div>
+    <h3>Safety</h3>
+    <p>Smart choices & online safety</p>
+  </article>
+  <article class="mm-tile">
+    <div class="mm-icon">🏥</div>
+    <h3>Health</h3>
+    <p>Daily habits & checklists</p>
+  </article>
+</section>
+{% endblock %}
